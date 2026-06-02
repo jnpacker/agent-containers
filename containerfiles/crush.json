@@ -12,6 +12,9 @@
     "python": {
       "command": "pyright-langserver",
       "args": ["--stdio"]
+    },
+    "make": {
+      "command": "make-ls"
     }
   }
 }

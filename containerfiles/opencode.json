@@ -6,6 +6,9 @@
     },
     "python": {
       "command": ["pyright-langserver", "--stdio"]
+    },
+    "make": {
+      "command": ["make-ls"]
     }
   }
 }

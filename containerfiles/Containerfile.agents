@@ -9,6 +9,7 @@ ARG PYTHON_BUILD=20260414
 ARG JIRA_MCP_VERSION=0.1.0
 ARG GOPLS_VERSION=0.21.1
 ARG PYRIGHT_VERSION=1.1.409
+ARG MAKE_LS_VERSION=0.1.9
 
 # ---- Stage 1: Base tools (shared by all agents) ----
 FROM registry.access.redhat.com/ubi10/nodejs-24 AS base-tools
@@ -21,6 +22,9 @@ USER root
 
 # UBI does not provide a "node" user; create one to match the node:20-slim convention
 RUN groupadd -g 1000 node && useradd -u 1000 -g node -m -s /bin/bash node
+
+# OpenShell BYOC requirement: sandbox images must include a 'sandbox' user and group
+RUN groupadd -r sandbox && useradd -r -g sandbox -s /bin/bash sandbox
 
 RUN dnf install -y \
     git curl ca-certificates zsh vim-minimal nano less jq openssh-clients sudo \
@@ -63,14 +67,14 @@ RUN set -ex; \
 # npm global prefix under /usr/local/share, owned by the non-root "node" user
 RUN mkdir -p /usr/local/share/npm-global \
     && chown -R node:node /usr/local/share/npm-global \
-    && mkdir -p /workspace \
-    && chown node:node /workspace
+    && mkdir -p /sandbox \
+    && chown node:node /sandbox
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
 ENV NPM_CONFIG_CACHE=/home/node/.npm
 ENV PATH=$PATH:/usr/local/share/npm-global/bin
 
 USER node
-WORKDIR /workspace
+WORKDIR /sandbox
 
 ENV DEVCONTAINER=true
 ENV EDITOR=nano
@@ -88,6 +92,7 @@ ARG PYTHON_VERSION
 ARG PYTHON_BUILD
 ARG GOPLS_VERSION
 ARG PYRIGHT_VERSION
+ARG MAKE_LS_VERSION
 USER root
 
 RUN set -ex; \
@@ -128,6 +133,7 @@ RUN set -ex; \
 RUN /usr/local/go/bin/go install golang.org/x/tools/gopls@v${GOPLS_VERSION}
 ENV PATH=$PATH:/home/node/go/bin
 RUN python3 -m pip install --no-cache-dir pyright==${PYRIGHT_VERSION}
+RUN /usr/local/go/bin/go install github.com/owenrumney/make-ls/cmd/make-ls@v${MAKE_LS_VERSION}
 
 USER node
 
@@ -143,10 +149,6 @@ RUN npm install -g opencode-ai@${OPENCODE_VERSION} --ignore-scripts && \
     cp "$OC_DIR/node_modules/opencode-linux-x64/bin/opencode" "$OC_DIR/bin/opencode.exe" && \
     chmod 755 "$OC_DIR/bin/opencode.exe" && \
     npm cache clean --force
-
-# Provider config: restrict to Claude (Vertex) and Gemini only.
-# Credentials are injected at runtime via K8s/Podman secrets.
-COPY --chown=node:node containerfiles/opencode.json /workspace/opencode.json
 
 # GCP credentials path for Claude via Vertex AI — value injected at runtime
 ENV GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud/credentials.json
@@ -178,8 +180,8 @@ RUN set -ex; \
 USER node
 
 # Crush config directory and config file
-RUN mkdir -p /workspace/.config/crush
-COPY --chown=node:node containerfiles/crush.json /workspace/.config/crush/crush.json
+RUN mkdir -p /sandbox/.config/crush
+COPY --chown=node:node containerfiles/crush.json /sandbox/.config/crush/crush.json
 
 # GCP credentials path for Claude via Vertex AI — value injected at runtime
 ENV GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud/credentials.json
