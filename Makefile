@@ -10,11 +10,11 @@ IMAGES := opencode crush
 
 # Toolchain versions — update all with: make update-deps
 GO_VERSION       ?= 1.26.4
-PYTHON_VERSION   ?= 3.14.5
-PYTHON_BUILD     ?= 20260602
-OPENCODE_VERSION ?= 1.16.2
-CRUSH_VERSION    ?= 0.75.0
-GH_VERSION       ?= 2.93.0
+PYTHON_VERSION   ?= 3.14.6
+PYTHON_BUILD     ?= 20260610
+OPENCODE_VERSION ?= 1.17.7
+CRUSH_VERSION    ?= 0.77.0
+GH_VERSION       ?= 2.94.0
 FZF_VERSION      ?= 0.73.1
 RG_VERSION       ?= 15.1.0
 JIRA_MCP_VERSION ?= 0.1.0
@@ -98,14 +98,14 @@ create-opencode-secret:  ## Create Podman + K8s secrets.  Optional: CREDS_FILE=<
 .PHONY: update-deps
 update-deps:  ## Fetch latest versions of all dependencies and update Makefile
 	$(eval LATEST_GO := $(shell curl -fsSL 'https://go.dev/dl/?mode=json' | jq -r '.[0].version' | sed 's/go//'))
-	$(eval LATEST_BUILD := $(shell curl -fsSL 'https://api.github.com/repos/indygreg/python-build-standalone/releases/latest' | jq -r '.tag_name'))
+	$(eval LATEST_BUILD := $(shell curl -fsSL 'https://api.github.com/repos/indygreg/python-build-standalone/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name'))
 	$(eval LATEST_PY := $(shell curl -fsSL 'https://api.github.com/repos/indygreg/python-build-standalone/releases/tags/$(LATEST_BUILD)' | jq -r '.assets[].name' | grep -oP 'cpython-\K[0-9]+\.[0-9]+\.[0-9]+(?=\+.*x86_64-unknown-linux-gnu-install_only\.tar\.gz)' | sort -V | tail -1))
 	$(eval LATEST_OC := $(shell npm view opencode-ai version))
-	$(eval LATEST_CRUSH := $(shell curl -fsSL 'https://api.github.com/repos/charmbracelet/crush/releases/latest' | jq -r '.tag_name | ltrimstr("v")'))
-	$(eval LATEST_GH := $(shell curl -fsSL 'https://api.github.com/repos/cli/cli/releases/latest' | jq -r '.tag_name | ltrimstr("v")'))
-	$(eval LATEST_FZF := $(shell curl -fsSL 'https://api.github.com/repos/junegunn/fzf/releases/latest' | jq -r '.tag_name | ltrimstr("v")'))
-	$(eval LATEST_RG := $(shell curl -fsSL 'https://api.github.com/repos/BurntSushi/ripgrep/releases/latest' | jq -r '.tag_name'))
-	$(eval LATEST_JIRA_MCP := $(shell curl -fsSL 'https://api.github.com/repos/stolostron/jira-mcp-server/releases/latest' | jq -r '.tag_name | ltrimstr("v")'))
+	$(eval LATEST_CRUSH := $(shell curl -fsSL 'https://api.github.com/repos/charmbracelet/crush/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
+	$(eval LATEST_GH := $(shell curl -fsSL 'https://api.github.com/repos/cli/cli/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
+	$(eval LATEST_FZF := $(shell curl -fsSL 'https://api.github.com/repos/junegunn/fzf/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
+	$(eval LATEST_RG := $(shell curl -fsSL 'https://api.github.com/repos/BurntSushi/ripgrep/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name'))
+	$(eval LATEST_JIRA_MCP := $(shell curl -fsSL 'https://api.github.com/repos/stolostron/jira-mcp-server/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
 	$(eval LATEST_GOPLS := $(shell curl -fsSL 'https://api.github.com/repos/golang/tools/releases' | jq -r '[.[] | select(.tag_name | startswith("gopls/"))][0].tag_name | ltrimstr("gopls/v")'))
 	$(eval LATEST_PYRIGHT := $(shell curl -fsSL 'https://pypi.org/pypi/pyright/json' | jq -r '.info.version'))
 	@echo "Go: $(LATEST_GO)  Python: $(LATEST_PY) (build: $(LATEST_BUILD))  opencode: $(LATEST_OC)  crush: $(LATEST_CRUSH)  gh: $(LATEST_GH)  fzf: $(LATEST_FZF)  rg: $(LATEST_RG)  jira-mcp: $(LATEST_JIRA_MCP)  gopls: $(LATEST_GOPLS)  pyright: $(LATEST_PYRIGHT)"
