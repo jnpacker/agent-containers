@@ -25,7 +25,6 @@
       "Bash(git *)",
       "Bash(make update-deps *)",
       "mcp__github-jnpacker__search_pull_requests",
-      "Bash(make build-fast-crush *)",
       "Bash(helm upgrade *)",
       "Bash(helm show *)",
       "WebFetch(domain:docs.nvidia.com)",
