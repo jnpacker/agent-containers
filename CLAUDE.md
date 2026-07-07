@@ -2,7 +2,7 @@
 
 ## Commands
 
-- **Build**: `make build` (all), `make build-opencode`, `make build-crush`
+- **Build**: `make build` (all), `make build-opencode`
 - **Push**: `make push`, `make push-<image>`
 - **Publish**: `make publish-<image>`
 - **Run locally**: `make deploy-podman-<image>`

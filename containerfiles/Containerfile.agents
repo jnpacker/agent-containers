@@ -3,13 +3,11 @@ ARG RG_VERSION=15.1.0
 ARG GH_VERSION=2.94.0
 ARG GO_VERSION=1.26.4
 ARG OPENCODE_VERSION=1.17.7
-ARG CRUSH_VERSION=0.77.0
 ARG PYTHON_VERSION=3.14.6
 ARG PYTHON_BUILD=20260610
 ARG JIRA_MCP_VERSION=0.1.0
 ARG GOPLS_VERSION=0.22.0
 ARG PYRIGHT_VERSION=1.1.410
-ARG MAKE_LS_VERSION=0.1.9
 
 # ---- Stage 1: Base tools (shared by all agents) ----
 FROM registry.access.redhat.com/ubi10/nodejs-24 AS base-tools
@@ -110,7 +108,6 @@ ARG PYTHON_VERSION
 ARG PYTHON_BUILD
 ARG GOPLS_VERSION
 ARG PYRIGHT_VERSION
-ARG MAKE_LS_VERSION
 USER root
 
 RUN set -ex; \
@@ -147,11 +144,10 @@ RUN set -ex; \
     && rm -f /tmp/jira_mcp_server-*.whl \
     && jira-mcp-server --help | head -5
 
-# Install LSP servers (gopls for Go, pyright for Python, make-ls for Makefiles) — versions pinned via ARGs
+# Install LSP servers (gopls for Go, pyright for Python) — versions pinned via ARGs
 RUN /usr/local/go/bin/go install golang.org/x/tools/gopls@v${GOPLS_VERSION}
 ENV PATH=$PATH:/home/node/go/bin
 RUN python3 -m pip install --no-cache-dir pyright==${PYRIGHT_VERSION}
-RUN npm install -g make-ls@v${MAKE_LS_VERSION}
 
 # GitHub App auth — transparent gh/git when credentials are mounted at runtime.
 # Upstream: server-foundation-agent/build/scripts (kubeopencode/devbox pattern).
@@ -166,44 +162,7 @@ RUN mv /usr/local/bin/gh /usr/bin/gh-real \
 
 USER node
 
-# ---- Stage 3a: Crush agent ----
-FROM base-runtimes AS crush
-ARG CRUSH_VERSION
-
-USER root
-RUN set -ex; \
-    ARCH_RAW=$(uname -m); \
-    case "$ARCH_RAW" in \
-      x86_64)  CRUSH_ARCH=x86_64 ;; \
-      aarch64) CRUSH_ARCH=arm64 ;; \
-      *) echo "Unsupported arch: $ARCH_RAW" >&2 && exit 1 ;; \
-    esac; \
-    FILENAME="crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz"; \
-    URL="https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/${FILENAME}"; \
-    echo "Downloading Crush v${CRUSH_VERSION} for ${CRUSH_ARCH}..."; \
-    curl --retry 5 --retry-delay 3 --retry-all-errors -fsSL "${URL}" \
-        | tar -xz --strip-components=1 -C /usr/local/bin \
-            "crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}/crush"; \
-    chmod +x /usr/local/bin/crush; \
-    crush --version
-
-USER root
-
-# Crush config — written to sandbox home where Crush resolves ${HOME}/.config/crush/
-RUN mkdir -p /home/sandbox/.config/crush \
-    && chown -R sandbox:sandbox /home/sandbox/.config
-COPY --chown=sandbox:sandbox containerfiles/crush.json /home/sandbox/.config/crush/crush.json
-
-USER node
-
-# GCP credentials path for Claude via Vertex AI — value injected at runtime
-ENV GOOGLE_APPLICATION_CREDENTIALS=/app/gcloud/credentials.json
-ENV CRUSH_DISABLE_METRICS=1
-ENV DO_NOT_TRACK=1
-
-CMD ["crush"]
-
-# ---- Stage 3b: OpenCode agent (last stage — default for OpenShift builds) ----
+# ---- Stage 3: OpenCode agent (last stage — default for OpenShift builds) ----
 FROM base-runtimes AS opencode
 ARG OPENCODE_VERSION
 

@@ -6,26 +6,23 @@
 AC_DEFAULTS := $(firstword $(wildcard ../agent-swarm/.push-defaults) .push-defaults)
 -include $(AC_DEFAULTS)
 
-IMAGES := opencode crush
+IMAGES := opencode
 
 # Toolchain versions — update all with: make update-deps
 GO_VERSION       ?= 1.26.4
 PYTHON_VERSION   ?= 3.14.6
-PYTHON_BUILD     ?= 20260610
-OPENCODE_VERSION ?= 1.17.7
-CRUSH_VERSION    ?= 0.77.0
-GH_VERSION       ?= 2.94.0
-FZF_VERSION      ?= 0.73.1
+PYTHON_BUILD     ?= 20260623
+OPENCODE_VERSION ?= 1.17.14
+GH_VERSION       ?= 2.96.0
+FZF_VERSION      ?= 0.74.0
 RG_VERSION       ?= 15.1.0
 YQ_VERSION       ?= 4.53.3
 JIRA_MCP_VERSION ?= 0.1.0
 GOPLS_VERSION    ?= 0.22.0
-PYRIGHT_VERSION  ?= 1.1.410
-MAKE_LS_VERSION  ?= 0.1.9
+PYRIGHT_VERSION  ?= 1.1.411
 
 # Per-image build targets
 TARGET_opencode := opencode
-TARGET_crush    := crush
 CONTAINERFILE   := containerfiles/Containerfile.agents
 
 # Pass NOPROMPT=1 to skip interactive prompts (e.g. make build NOPROMPT=1)
@@ -47,7 +44,19 @@ define IMAGE_TARGETS
 
 .PHONY: build-$(1) push-$(1) publish-$(1)
 build-$(1):
-	@GO_VERSION=$(GO_VERSION) PYTHON_VERSION=$(PYTHON_VERSION) PYTHON_BUILD=$(PYTHON_BUILD) CRUSH_VERSION=$(CRUSH_VERSION) OPENCODE_VERSION=$(OPENCODE_VERSION) JIRA_MCP_VERSION=$(JIRA_MCP_VERSION) GOPLS_VERSION=$(GOPLS_VERSION) PYRIGHT_VERSION=$(PYRIGHT_VERSION) MAKE_LS_VERSION=$(MAKE_LS_VERSION) YQ_VERSION=$(YQ_VERSION) NOPROMPT=$(NOPROMPT) bash scripts/build.sh $(1) $(CONTAINERFILE)
+	@GO_VERSION=$(GO_VERSION) \
+	 PYTHON_VERSION=$(PYTHON_VERSION) \
+	 PYTHON_BUILD=$(PYTHON_BUILD) \
+	 OPENCODE_VERSION=$(OPENCODE_VERSION) \
+	 GH_VERSION=$(GH_VERSION) \
+	 FZF_VERSION=$(FZF_VERSION) \
+	 RG_VERSION=$(RG_VERSION) \
+	 YQ_VERSION=$(YQ_VERSION) \
+	 JIRA_MCP_VERSION=$(JIRA_MCP_VERSION) \
+	 GOPLS_VERSION=$(GOPLS_VERSION) \
+	 PYRIGHT_VERSION=$(PYRIGHT_VERSION) \
+	 NOPROMPT=$(NOPROMPT) \
+	 bash scripts/build.sh $(1) $(CONTAINERFILE)
 push-$(1):
 	@bash scripts/push.sh $(1)
 publish-$(1):
@@ -103,7 +112,6 @@ update-deps:  ## Fetch latest versions of all dependencies and update Makefile
 	$(eval LATEST_BUILD := $(shell curl -fsSL 'https://api.github.com/repos/indygreg/python-build-standalone/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name'))
 	$(eval LATEST_PY := $(shell curl -fsSL 'https://api.github.com/repos/indygreg/python-build-standalone/releases/tags/$(LATEST_BUILD)' | jq -r '.assets[].name' | grep -oP 'cpython-\K[0-9]+\.[0-9]+\.[0-9]+(?=\+.*x86_64-unknown-linux-gnu-install_only\.tar\.gz)' | sort -V | tail -1))
 	$(eval LATEST_OC := $(shell npm view opencode-ai version))
-	$(eval LATEST_CRUSH := $(shell curl -fsSL 'https://api.github.com/repos/charmbracelet/crush/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
 	$(eval LATEST_GH := $(shell curl -fsSL 'https://api.github.com/repos/cli/cli/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
 	$(eval LATEST_FZF := $(shell curl -fsSL 'https://api.github.com/repos/junegunn/fzf/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
 	$(eval LATEST_RG := $(shell curl -fsSL 'https://api.github.com/repos/BurntSushi/ripgrep/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name'))
@@ -111,13 +119,11 @@ update-deps:  ## Fetch latest versions of all dependencies and update Makefile
 	$(eval LATEST_JIRA_MCP := $(shell curl -fsSL 'https://api.github.com/repos/stolostron/jira-mcp-server/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
 	$(eval LATEST_GOPLS := $(shell curl -fsSL 'https://api.github.com/repos/golang/tools/releases' | jq -r '[.[] | select(.tag_name | startswith("gopls/"))][0].tag_name | ltrimstr("gopls/v")'))
 	$(eval LATEST_PYRIGHT := $(shell curl -fsSL 'https://pypi.org/pypi/pyright/json' | jq -r '.info.version'))
-	$(eval LATEST_MAKE_LS := $(shell curl -fsSL 'https://api.github.com/repos/Sollimann/make-ls/releases?per_page=5' | jq -r '[.[] | select(.prerelease == false and .draft == false)][0].tag_name | ltrimstr("v")'))
-	@echo "Go: $(LATEST_GO)  Python: $(LATEST_PY) (build: $(LATEST_BUILD))  opencode: $(LATEST_OC)  crush: $(LATEST_CRUSH)  gh: $(LATEST_GH)  fzf: $(LATEST_FZF)  rg: $(LATEST_RG)  yq: $(LATEST_YQ)  jira-mcp: $(LATEST_JIRA_MCP)  gopls: $(LATEST_GOPLS)  pyright: $(LATEST_PYRIGHT)  make-ls: $(LATEST_MAKE_LS)"
+	@echo "Go: $(LATEST_GO)  Python: $(LATEST_PY) (build: $(LATEST_BUILD))  opencode: $(LATEST_OC)  gh: $(LATEST_GH)  fzf: $(LATEST_FZF)  rg: $(LATEST_RG)  yq: $(LATEST_YQ)  jira-mcp: $(LATEST_JIRA_MCP)  gopls: $(LATEST_GOPLS)  pyright: $(LATEST_PYRIGHT)"
 	@sed -i 's/^GO_VERSION\s*?= .*/GO_VERSION       ?= $(LATEST_GO)/' Makefile
 	@sed -i 's/^PYTHON_VERSION\s*?= .*/PYTHON_VERSION   ?= $(LATEST_PY)/' Makefile
 	@sed -i 's/^PYTHON_BUILD\s*?= .*/PYTHON_BUILD     ?= $(LATEST_BUILD)/' Makefile
 	@sed -i 's/^OPENCODE_VERSION\s*?= .*/OPENCODE_VERSION ?= $(LATEST_OC)/' Makefile
-	@sed -i 's/^CRUSH_VERSION\s*?= .*/CRUSH_VERSION    ?= $(LATEST_CRUSH)/' Makefile
 	@sed -i 's/^GH_VERSION\s*?= .*/GH_VERSION       ?= $(LATEST_GH)/' Makefile
 	@sed -i 's/^FZF_VERSION\s*?= .*/FZF_VERSION      ?= $(LATEST_FZF)/' Makefile
 	@sed -i 's/^RG_VERSION\s*?= .*/RG_VERSION       ?= $(LATEST_RG)/' Makefile
@@ -125,7 +131,6 @@ update-deps:  ## Fetch latest versions of all dependencies and update Makefile
 	@sed -i 's/^JIRA_MCP_VERSION\s*?= .*/JIRA_MCP_VERSION ?= $(LATEST_JIRA_MCP)/' Makefile
 	@sed -i 's/^GOPLS_VERSION\s*?= .*/GOPLS_VERSION    ?= $(LATEST_GOPLS)/' Makefile
 	@sed -i 's/^PYRIGHT_VERSION\s*?= .*/PYRIGHT_VERSION  ?= $(LATEST_PYRIGHT)/' Makefile
-	@sed -i 's/^MAKE_LS_VERSION\s*?= .*/MAKE_LS_VERSION  ?= $(LATEST_MAKE_LS)/' Makefile
 
 .PHONY: set-image-tag
 set-image-tag:  ## Set IMAGE_TAG in $(AC_DEFAULTS) (usage: make set-image-tag IMAGE_TAG=0.3.2)

@@ -1,6 +1,6 @@
 # Agent Instructions (AGENTS.md)
 
-This repository is for building, pushing, and deploying containerized AI code agents (OpenCode and Crush).
+This repository is for building, pushing, and deploying containerized AI code agents (OpenCode).
 
 ## Project Architecture & Structure
 
@@ -8,7 +8,7 @@ For system architecture, data flows, and module layout, see [docs/ARCHITECTURE.m
 
 ## Important Commands
 
-- **Build**: `make build` (builds all) or `make build-opencode` / `make build-crush`. 
+- **Build**: `make build` (builds all) or `make build-opencode`. 
   - *Note: It prompts for Registry/Tag interactively. Pass `NOPROMPT=1` to use saved defaults.*
 - **Push**: `make push` or `make push-<image>`.
 - **Publish**: `make publish-<image>` (builds and pushes without prompts).
